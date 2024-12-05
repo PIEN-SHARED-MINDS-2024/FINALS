@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐇</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f2f2f2;
+            position: relative;
+            font-family: 'Karla';
+            color: rgb(34, 34, 34);
+        }
+
+        /* Style for the Image Showcase Box */
+    #image-showcase {
+        position: fixed;
+        bottom: 90px;
+        right: 100px;
+        width: 130px;
+        height: auto;
+        /* background-color: rgba(255, 41, 41, 0.5); */
+        background-color: #f8f6f6;
+        /* opacity: 0.5; */
+        /* box-shadow: 0 4px 4px rgba(41, 120, 247, 0.2); */
+        border-radius: 5px;
+        border: 1px solid #ff2929;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: move;
+        transition: all 0.3s ease-in-out;
+    }
+
+    /* Style for the minimized image showcase */
+    #image-showcase.minimized {
+        width: 130px;
+        height: 40px;
+    }
+
+    /* Style for the close button */
+    #close-showcase {
+        background: transparent;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        margin-left: auto;
+        width: 30px;
+        height: 40px;
+    }
+
+    /* Style for the image in the showcase box */
+    #showcase-img {
+        width: 100%;
+        max-width: 400px;
+        object-fit: cover;
+    }
+
+    /* Hide the image showcase box by default */
+    .hidden {
+        display: none;
+    }
+
+        #image-grid {
+            display: grid;
+            position: absolute;
+            left: 150px;
+            grid-template-columns: repeat(4, 200px);
+            grid-template-rows: repeat(4, 200px);
+            gap: 10px;
+        }
+
+        #image-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        #image-grid img:hover {
+            transform: scale(1.05);
+        }
+
+        .placeholder {
+            background-color: #cccccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666666;
+            font-size: 16px;
+        }
+
+        #shuffle-button {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgb(34, 34, 34);
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Karla';
+            transition: text-decoration 0.3s;
+        }
+
+        #shuffle-button:hover {
+            color: #ff2929;
+            text-decoration: underline;
+        }
+
+        #theMet-button,
+        #artsy-button {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            color: rgb(34, 34, 34);
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Karla';
+            transition: text-decoration 0.3s;
+        }
+
+        #theMet-button {
+            bottom: 60px;
+        }
+
+        #artsy-button {
+            bottom: 100px;
+        }
+
+        #theMet-button:hover,
+        #artsy-button:hover {
+            color: #ff2929;
+            text-decoration: underline;
+        }
+
+        /* Folder Panel */
+        #folder-panel {
+            width: 300px;
+            height: 80%;
+            background-color: #ffffff;
+            position: fixed;
+            top: 50%;
+            right: 5vw;
+            transform: translateY(-50%);
+            padding: 20px;
+            border-radius: 5px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .folder {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 250px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+            margin-bottom: 15px;
+        }
+
+        .folder img {
+            width: auto;
+            height: auto;
+            max-height: 100px;
+            object-fit: contain;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .folder img:hover {
+            transform: scale(1.05);
+        }
+
+        #add-folder-button {
+            position: absolute;
+            top: 16.5px;
+            right: 100px;
+            padding: 5px 10px;
+            background-color: #ffffff;
+            color: rgb(34, 34, 34);
+            border: none;
+            border-radius: 30%;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background-color 0.3s;
+        }
+
+        #add-folder-button:hover {
+            color: #ff2929;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <div id="image-grid">
+        <div class="placeholder">Loading...</div>
+    </div>
+
+    <div id="image-showcase" class="hidden">
+        <div id="image-showcase-content">
+            <button id="close-showcase">-</button>
+            <img id="showcase-img" src="" alt="">
+        </div>
+    </div>
+
+    <button id="shuffle-button">Shuffle</button>
+    <button id="theMet-button">The Met</button>
+    <button id="artsy-button">Artsy</button>
+
+    <div id="folder-panel">
+        <button id="add-folder-button">+</button>
+        <p style="margin-top: 0;">Folders</p>
+        <div id="folders-container">
+            <div class="folder" ondrop="drop(event)" ondragover="allowDrop(event)">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Ensure Firebase is only initialized once
+            if (!firebase.apps.length) {
+                const firebaseConfig = {
+                    apiKey: "YOUR_API_KEY",
+                    authDomain: "sharedmindsfall2024.firebaseapp.com",
+                    projectId: "sharedmindsfall2024",
+                    storageBucket: "sharedmindsfall2024.appspot.com",
+                    messagingSenderId: "581247976990",
+                    appId: "1:581247976990:web:563ff015b8bc5e354c500f"
+                };
+    
+                // Initialize Firebase
+                firebase.initializeApp(firebaseConfig);
+            } else {
+                console.log("Firebase already initialized, skipping initialization.");
+            }
+    
+            const db = firebase.firestore();
+            let currentCollection = "all"; // Default to showing all collections
+    
+            // Get references to the showcase elements
+            const imageShowcase = document.getElementById("image-showcase");
+            const showcaseImg = document.getElementById("showcase-img");
+            const closeShowcaseButton = document.getElementById("close-showcase");
+    
+            // Function to normalize field names
+            function normalizeData(data) {
+                return {
+                    objectID: data.objectID || data.id,
+                    imageUrl: data.imageUrl || data.image_url,
+                    ...data
+                };
+            }
+    
+            // Fetch and display random images
+            async function fetchAndDisplayRandomImages() {
+                const grid = document.getElementById("image-grid");
+                grid.innerHTML = ""; // Clear placeholders
+    
+                try {
+                    let allDocs = [];
+                    if (currentCollection === "theMet") {
+                        const snapshot = await db.collection("theMet").get();
+                        allDocs = snapshot.docs;
+                    } else if (currentCollection === "artsy") {
+                        const snapshot = await db.collection("artsy").get();
+                        allDocs = snapshot.docs;
+                    } else {
+                        // Fetch both collections concurrently
+                        const [theMetSnapshot, artsySnapshot] = await Promise.all([
+                            db.collection("theMet").get(),
+                            db.collection("artsy").get()
+                        ]);
+                        allDocs = [...theMetSnapshot.docs, ...artsySnapshot.docs];
+                    }
+    
+                    if (allDocs.length === 0) {
+                        console.error("No artworks found in Firestore");
+                        addPlaceholders(grid);
+                        return;
+                    }
+    
+                    // Shuffle and select 16 random documents
+                    const randomDocs = allDocs.sort(() => Math.random() - 0.5).slice(0, 16);
+    
+                    randomDocs.forEach((doc, index) => {
+                        const data = normalizeData(doc.data());
+    
+                        if (data.objectID && data.imageUrl) {
+                            console.log(`Fetched image URL: ${data.imageUrl}`);
+                            const imgElement = createImageElement(data, index, currentCollection);
+                            grid.appendChild(imgElement);
+                            console.log(`Grid cell ${index} updated with objectID: ${data.objectID}`);
+                        } else {
+                            console.warn(`Skipping document with ID ${doc.id}: Missing required fields`);
+                            grid.appendChild(createPlaceholderElement());
+                        }
+                    });
+    
+                } catch (error) {
+                    console.error("Error fetching images: ", error);
+                    addPlaceholders(grid);
+                }
+            }
+    
+            // Create an image element with click and drag events
+            function createImageElement(data, index, collection) {
+                const normalizedData = normalizeData(data);
+    
+                const imgElement = document.createElement("img");
+                imgElement.src = normalizedData.imageUrl;
+                imgElement.id = `image-${index}`;
+                imgElement.dataset.objectId = String(normalizedData.objectID);
+                imgElement.dataset.collection = collection;
+                imgElement.draggable = true;
+    
+                console.log(`Creating image element for objectID: ${normalizedData.objectID}, URL: ${normalizedData.imageUrl}`);
+    
+                imgElement.addEventListener('click', () => {
+                    console.log(`Image clicked: objectID = ${normalizedData.objectID}`);
+                    findAndDisplaySimilarImages(normalizedData.objectID, index, collection);
+    
+                    // Show the image in the showcase box
+                    showImageShowcase(normalizedData.imageUrl);
+                });
+    
+                imgElement.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    console.log(`Image right-clicked: objectID = ${normalizedData.objectID}`);
+                    showImageShowcase(normalizedData.imageUrl);
+                });
+    
+                imgElement.addEventListener('dragstart', (event) => {
+                    event.dataTransfer.setData("image", JSON.stringify({
+                        id: normalizedData.objectID,
+                        imageUrl: normalizedData.imageUrl
+                    }));
+                    console.log(`Dragging image with objectID: ${normalizedData.objectID}`);
+                });
+    
+                return imgElement;
+            }
+    
+            // Function to find and display similar images
+            async function findAndDisplaySimilarImages(clickedObjectID, clickedIndex, collection) {
+                const grid = document.getElementById("image-grid");
+                console.log(`Attempting to find clicked cell with objectID: ${clickedObjectID}`);
+    
+                try {
+                    console.log(`Fetching similar images for artwork ID: ${clickedObjectID} from collection: ${collection}`);
+    
+                    const response = await fetch("http://localhost:3001/api/find_similar", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ objectID: String(clickedObjectID), collection: collection }) // Convert clickedObjectID to string
+                    });
+    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error("Error response from server:", errorText);
+                        throw new Error("Failed to fetch similar images");
+                    }
+    
+                    const result = await response.json();
+    
+                    if (result.similar_artworks) {
+                        console.log("Similar artworks found:", result.similar_artworks);
+    
+                        // Convert similar IDs to strings to ensure compatibility with Firestore queries
+                        const similarImageIds = result.similar_artworks.map(String);
+                        let similarImages = [];
+    
+                        if (collection === "all") {
+                            // Query both 'theMet' and 'artsy' collections in batches of 10
+                            for (let i = 0; i < similarImageIds.length; i += 10) {
+                                const batchIds = similarImageIds.slice(i, i + 10);
+    
+                                // Query 'theMet' collection
+                                console.log("Querying 'theMet' collection for similar image IDs:", batchIds);
+                                const theMetSnapshot = await db.collection("theMet")
+                                    .where(firebase.firestore.FieldPath.documentId(), "in", batchIds)
+                                    .get();
+                                similarImages = similarImages.concat(theMetSnapshot.docs.map(doc => normalizeData(doc.data())));
+    
+                                // Query 'artsy' collection
+                                console.log("Querying 'artsy' collection for similar image IDs:", batchIds);
+                                const artsySnapshot = await db.collection("artsy")
+                                    .where(firebase.firestore.FieldPath.documentId(), "in", batchIds)
+                                    .get();
+                                similarImages = similarImages.concat(artsySnapshot.docs.map(doc => normalizeData(doc.data())));
+                            }
+                        } else {
+                            // Query only the specified collection in batches of 10
+                            for (let i = 0; i < similarImageIds.length; i += 10) {
+                                const batchIds = similarImageIds.slice(i, i + 10);
+                                console.log(`Querying ${collection} collection for similar image IDs:`, batchIds);
+    
+                                const similarSnapshot = await db.collection(collection)
+                                    .where(firebase.firestore.FieldPath.documentId(), "in", batchIds)
+                                    .get();
+    
+                                similarImages = similarImages.concat(similarSnapshot.docs.map(doc => normalizeData(doc.data())));
+                            }
+                        }
+    
+                        console.log("Similar images retrieved from Firestore:", similarImages);
+    
+                        if (similarImages.length < similarImageIds.length) {
+                            console.warn("Some documents could not be found in Firestore, possibly due to missing IDs");
+                        }
+    
+                        for (let i = 0; i < 16; i++) {
+                            let gridCell = grid.children[i];
+    
+                            if (i === clickedIndex) {
+                                console.log(`Keeping clicked image in place at cell ${clickedIndex}: ${clickedObjectID}`);
+                            } else {
+                                let similarImageIndex = i < clickedIndex ? i : i - 1;
+    
+                                if (similarImageIndex < similarImages.length) {
+                                    const data = similarImages[similarImageIndex];
+                                    if (data && data.imageUrl) {
+                                        console.log(`Updating cell ${i} with new image: ${data.objectID}, URL: ${data.imageUrl}`);
+                                        const newImgElement = createImageElement(data, i, collection);
+                                        grid.replaceChild(newImgElement, gridCell);
+                                    } else {
+                                        console.warn(`Missing image data for objectID: ${data ? data.objectID : 'unknown'}`);
+                                        const placeholder = createPlaceholderElement();
+                                        grid.replaceChild(placeholder, gridCell);
+                                    }
+                                } else {
+                                    console.warn(`Adding placeholder to cell ${i} as no more similar images are available`);
+                                    const placeholder = createPlaceholderElement();
+                                    grid.replaceChild(placeholder, gridCell);
+                                }
+                            }
+                        }
+                    } else {
+                        console.error("No similar artworks found.");
+                        addPlaceholders(grid);
+                    }
+                } catch (error) {
+                    console.error("Error fetching similar images:", error);
+                    addPlaceholders(grid);
+                }
+            }
+    
+            // Function to show the image showcase box with the clicked image
+            function showImageShowcase(imageUrl) {
+                showcaseImg.src = imageUrl;
+                imageShowcase.classList.remove("hidden");
+                imageShowcase.classList.remove("minimized");
+                showcaseImg.style.display = "block";
+            }
+    
+            // Make the showcase box draggable
+            let isDragging = false;
+            let dragOffsetX = 0;
+            let dragOffsetY = 0;
+    
+            imageShowcase.addEventListener("mousedown", (e) => {
+                if (e.target !== closeShowcaseButton) {
+                    isDragging = true;
+                    dragOffsetX = e.clientX - imageShowcase.getBoundingClientRect().left;
+                    dragOffsetY = e.clientY - imageShowcase.getBoundingClientRect().top;
+                    imageShowcase.style.cursor = "grabbing";
+                }
+            });
+    
+            document.addEventListener("mousemove", (e) => {
+                if (isDragging) {
+                    const newLeft = e.clientX - dragOffsetX;
+                    const newTop = e.clientY - dragOffsetY;
+                    imageShowcase.style.left = `${newLeft}px`;
+                    imageShowcase.style.top = `${newTop}px`;
+                }
+            });
+    
+            document.addEventListener("mouseup", () => {
+                if (isDragging) {
+                    isDragging = false;
+                    imageShowcase.style.cursor = "move";
+                }
+            });
+    
+            // Add event listener to close button to minimize the showcase box
+            closeShowcaseButton.addEventListener("click", () => {
+                if (imageShowcase.classList.contains("minimized")) {
+                    // Expand the box if it's minimized
+                    imageShowcase.classList.remove("minimized");
+                    imageShowcase.style.width = "130px";
+                    imageShowcase.style.height = "auto";
+                    showcaseImg.style.display = "block"; // Show the image
+                } else {
+                    // Minimize the box if it's expanded
+                    imageShowcase.classList.add("minimized");
+                    imageShowcase.style.width = "130px";
+                    imageShowcase.style.height = "40px";
+                    showcaseImg.style.display = "none"; // Hide the image
+                }
+            });
+    
+            // Create a placeholder element
+            function createPlaceholderElement() {
+                const placeholder = document.createElement("div");
+                placeholder.className = "placeholder";
+                return placeholder;
+            }
+    
+            // Add placeholders to the grid
+            function addPlaceholders(grid) {
+                grid.innerHTML = "";
+                for (let i = 0; i < 16; i++) {
+                    grid.appendChild(createPlaceholderElement());
+                }
+            }
+    
+            // Fetch images on load
+            fetchAndDisplayRandomImages();
+    
+            // Attach event listener to the shuffle button
+            document.getElementById("shuffle-button").addEventListener("click", () => {
+                currentCollection = "all"; // Set currentCollection to "all" for shuffling
+                fetchAndDisplayRandomImages();
+            });
+    
+            // Attach event listeners for theMet and artsy buttons
+            document.getElementById("theMet-button").addEventListener("click", () => {
+                currentCollection = "theMet";
+                fetchAndDisplayRandomImages();
+            });
+    
+            document.getElementById("artsy-button").addEventListener("click", () => {
+                currentCollection = "artsy";
+                fetchAndDisplayRandomImages();
+            });
+        });
+
+        // Allow dropping in the folder
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        // Drop the image into the folder
+        function drop(event) {
+            event.preventDefault();
+            const data = event.dataTransfer.getData("image");
+            const imageData = JSON.parse(data);
+
+            const folder = event.target.closest('.folder');
+            const imgElement = document.createElement("img");
+            imgElement.src = imageData.imageUrl;
+            imgElement.alt = imageData.objectID;
+            folder.appendChild(imgElement);
+            console.log(`Image added to folder: ${imageData.objectID}`);
+        }
+
+        // Create folder
+        document.getElementById("add-folder-button").addEventListener("click", () => {
+            const foldersContainer = document.getElementById("folders-container");
+            const newFolder = document.createElement("div");
+            newFolder.className = "folder";
+            newFolder.ondrop = drop;
+            newFolder.ondragover = allowDrop;
+            foldersContainer.appendChild(newFolder);
+            console.log("New folder created");
+        });
+
+        // Double-click to delete image from folder
+        document.getElementById("folders-container").addEventListener("dblclick", (event) => {
+            if (event.target.tagName === "IMG") {
+                const imgElement = event.target;
+                imgElement.parentElement.removeChild(imgElement);
+                console.log(`Image removed from folder: ${imgElement.alt}`);
+            }
+        });
+    </script>
+</body>
+
+</html> 
